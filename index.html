@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAI PRP Calculator FY 2023-24</title>
+    <meta name="description" content="Calculate Performance Related Pay (PRP) for Airports Authority of India executives for FY 2023-24">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const PRPCalculator = () => {
+          const [monthlyBasicPay, setMonthlyBasicPay] = useState('61800');
+          const [grade, setGrade] = useState('E1-E3');
+          const [performanceGroup, setPerformanceGroup] = useState('PG-3');
+
+          const gradeKittyFactors = {
+            'E1-E3': { ceiling: 40, kitty: 15.09 },
+            'E4-E5': { ceiling: 50, kitty: 18.87 },
+            'E6': { ceiling: 60, kitty: 22.64 },
+            'E7': { ceiling: 70, kitty: 26.41 },
+            'E8': { ceiling: 80, kitty: 30.19 },
+            'E9': { ceiling: 90, kitty: 33.96 },
+            'Members': { ceiling: 125, kitty: 47.17 }
+          };
+
+          const performanceGroupValues = {
+            'PG-1': { name: 'Excellent - First 15%', percentage: 100 },
+            'PG-2': { name: 'Excellent - Remaining 85%', percentage: 90 },
+            'PG-3': { name: 'Very Good', percentage: 80 },
+            'PG-4': { name: 'Good', percentage: 60 },
+            'PG-5': { name: 'Fair', percentage: 40 },
+            'PG-6': { name: 'Poor', percentage: 0 }
+          };
+
+          const mouRating = 100;
+
+          const calculations = useMemo(() => {
+            const basicPay = parseFloat(monthlyBasicPay) || 0;
+            const annualBasicPay = basicPay * 12;
+            const kittyFactor = gradeKittyFactors[grade].kitty;
+            const pgPercentage = performanceGroupValues[performanceGroup].percentage;
+
+            const factorX = 0.80 * (mouRating / 100) * kittyFactor;
+            const factorZ = 0.20 * (pgPercentage / 100) * kittyFactor;
+            const netPRPPercentage = factorX + factorZ;
+            const prpAmount = (annualBasicPay * netPRPPercentage) / 100;
+
+            return {
+              annualBasicPay,
+              kittyFactor,
+              pgPercentage,
+              factorX,
+              factorZ,
+              netPRPPercentage,
+              prpAmount
+            };
+          }, [monthlyBasicPay, grade, performanceGroup]);
+
+          const downloadAsCSV = () => {
+            const csvContent = `AAI PRP Calculator - FY 2023-24
+    
+Input Parameters:
+Monthly Basic Pay,₹${monthlyBasicPay}
+Grade,${grade}
+Performance Group,${performanceGroup} - ${performanceGroupValues[performanceGroup].name}
+
+Calculation Details:
+Annual Basic Pay,₹${calculations.annualBasicPay.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+AAI MOU Rating,${mouRating}% (Excellent)
+Grade-wise Kitty Factor,${calculations.kittyFactor}%
+Individual PG %,${calculations.pgPercentage}%
+
+Formula Breakdown:
+Factor X (80% weightage),${calculations.factorX.toFixed(4)}%
+Factor Z (20% weightage),${calculations.factorZ.toFixed(4)}%
+Net PRP Percentage,${calculations.netPRPPercentage.toFixed(4)}%
+
+Final Result:
+PRP Amount,₹${calculations.prpAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'PRP_Calculation.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+          };
+
+          const CalculatorIcon = () => (
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          );
+
+          const DownloadIcon = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          );
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+              <div className="max-w-5xl mx-auto">
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="text-indigo-600">
+                        <CalculatorIcon />
+                      </div>
+                      <div>
+                        <h1 className="text-2xl font-bold text-gray-800">AAI PRP Calculator</h1>
+                        <p className="text-sm text-gray-600">Financial Year 2023-24</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={downloadAsCSV}
+                      className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <DownloadIcon />
+                      Download CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Input Parameters</h2>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Monthly Basic Pay (₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={monthlyBasicPay}
+                          onChange={(e) => setMonthlyBasicPay(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          placeholder="Enter monthly basic pay"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Grade
+                        </label>
+                        <select
+                          value={grade}
+                          onChange={(e) => setGrade(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        >
+                          {Object.entries(gradeKittyFactors).map(([key, value]) => (
+                            <option key={key} value={key}>
+                              {key} (Ceiling: {value.ceiling}%, Kitty: {value.kitty}%)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Performance Group
+                        </label>
+                        <select
+                          value={performanceGroup}
+                          onChange={(e) => setPerformanceGroup(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        >
+                          {Object.entries(performanceGroupValues).map(([key, value]) => (
+                            <option key={key} value={key}>
+                              {key} - {value.name} ({value.percentage}%)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          AAI MOU Rating
+                        </label>
+                        <input
+                          type="text"
+                          value="Excellent (100%)"
+                          disabled
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Calculation Results</h2>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">Annual Basic Pay</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          ₹{calculations.annualBasicPay.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">
+                          Factor X (80% weightage)
+                        </span>
+                        <span className="text-sm font-semibold text-blue-700">
+                          {calculations.factorX.toFixed(4)}%
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">
+                          Factor Z (20% weightage)
+                        </span>
+                        <span className="text-sm font-semibold text-green-700">
+                          {calculations.factorZ.toFixed(4)}%
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">
+                          Net PRP Percentage
+                        </span>
+                        <span className="text-sm font-semibold text-purple-700">
+                          {calculations.netPRPPercentage.toFixed(4)}%
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg mt-4">
+                        <span className="text-base font-bold text-white">
+                          Final PRP Amount
+                        </span>
+                        <span className="text-xl font-bold text-white">
+                          ₹{calculations.prpAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2">Formula Used:</h3>
+                      <div className="text-xs text-gray-600 space-y-1 font-mono">
+                        <div>Factor X = 80% × 100% × {calculations.kittyFactor}%</div>
+                        <div>Factor Z = 20% × {calculations.pgPercentage}% × {calculations.kittyFactor}%</div>
+                        <div className="pt-2 border-t border-gray-300">
+                          Net PRP = (Factor X + Factor Z) × Annual BP
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Reference Tables</h2>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Grade-wise Kitty Factor</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="p-2 text-left">Grade</th>
+                              <th className="p-2 text-center">Ceiling</th>
+                              <th className="p-2 text-center">Kitty Factor</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(gradeKittyFactors).map(([grade, values]) => (
+                              <tr key={grade} className="border-b border-gray-200">
+                                <td className="p-2">{grade}</td>
+                                <td className="p-2 text-center">{values.ceiling}%</td>
+                                <td className="p-2 text-center">{values.kitty}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">Performance Group (PG)</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="p-2 text-left">PG</th>
+                              <th className="p-2 text-left">PMS Grade</th>
+                              <th className="p-2 text-center">%</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(performanceGroupValues).map(([pg, values]) => (
+                              <tr key={pg} className="border-b border-gray-200">
+                                <td className="p-2">{pg}</td>
+                                <td className="p-2">{values.name}</td>
+                                <td className="p-2 text-center">{values.percentage}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-yellow-800 mb-2">⚠️ Important Notes:</h3>
+                  <ul className="text-xs text-yellow-700 space-y-1 list-disc list-inside">
+                    <li>Based on actual Annual Basic Pay drawn in FY 2023-24</li>
+                    <li>PRP does NOT count for HRA, Leave encashment, PF, Pension, or Gratuity</li>
+                    <li>Subject to undertaking regarding merger-related increments</li>
+                    <li>Board Members: PRP @ 90% w.r.t. performance groups</li>
+                  </ul>
+                </div>
+
+                <div className="mt-6 text-center text-xs text-gray-500">
+                  <p>Based on CHRM Circular No. 09/2025 dated 16th October 2025</p>
+                  <p className="mt-1">Developed for AAI Executives | FY 2023-24</p>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PRPCalculator />);
+    </script>
+</body>
+</html>
